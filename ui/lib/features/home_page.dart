@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ui/models/document_model.dart';
 import 'package:ui/models/wiki_content.dart';
 import 'package:ui/services/http_service.dart';
 import 'package:ui/services/json_parser.dart';
@@ -12,106 +13,126 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Set<WikiContent> routes = {};
+  List<DocumentModel> docs = [];
+  final controller = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title:
-            Text('Information Retrival Category: Artificial Intelligence Wiki'),
-        bottom: PreferredSize(
-          preferredSize: Size.fromHeight(80),
-          child: Padding(
-            padding: EdgeInsets.only(bottom: 10),
-            child: SearchBar(
-              hintText: 'Search category or content',
-              onChanged: (value) {
-                HttpService().searchFiles(value);
-              },
+    return SelectionArea(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title:
+              Text('Information Retrival Category: Artificial Intelligence Wiki'),
+          bottom: PreferredSize(
+            preferredSize: Size.fromHeight(80),
+            child: Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: SearchBar(
+                controller: controller,
+                trailing: [
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        controller.clear();
+                        docs.clear();
+                      });
+                    },
+                    icon: Icon(Icons.cancel),
+                  )
+                ],
+                hintText: 'Search category or content',
+                onChanged: (value) async {
+                  docs = await HttpService().searchFiles(value);
+                  setState(() {});
+                },
+              ),
             ),
           ),
         ),
-      ),
-      body: FutureBuilder<List<WikiContent>>(
-        future: JsonParserService().getContents(),
-        builder: (context, snapshot) {
-          final data = routes.isNotEmpty &&
-                  routes.last.children != null &&
-                  routes.last.children!.isNotEmpty
-              ? routes.last.children!
-              : snapshot.data ?? [];
-          return snapshot.hasData
-              ? Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                routes.remove(routes.last);
-                              });
-                            },
-                            highlightColor: Theme.of(context)
-                                .colorScheme
-                                .secondaryContainer,
-                            icon: Icon(Icons.chevron_left),
-                          ),
-                          SizedBox(width: 16),
-                          Text(
-                            "Path - ${routes.map((element) => element.category ?? '').join('/')}",
-                            style: TextStyle(fontSize: 20),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        "${data.length} Total Catergories",
-                        style: TextStyle(fontSize: 20),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: DataView(
-                                data: data,
-                                onTap: (WikiContent value) {
-                                  setState(() {
-                                    if (routes.isNotEmpty &&
-                                        (routes.last.children?.isEmpty ??
-                                            false)) {
-                                      routes.remove(routes.last);
-                                    }
-                                    routes.add(value);
-                                  });
-                                  print('len ${routes.length}');
-                                },
+        body: docs.isNotEmpty
+            ? SearchResultsCard(results: docs)
+            : FutureBuilder<List<WikiContent>>(
+                future: JsonParserService().getContents(),
+                builder: (context, snapshot) {
+                  final data = routes.isNotEmpty &&
+                          routes.last.children != null &&
+                          routes.last.children!.isNotEmpty
+                      ? routes.last.children!
+                      : snapshot.data ?? [];
+                  return snapshot.hasData
+                      ? Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        routes.remove(routes.last);
+                                      });
+                                    },
+                                    highlightColor: Theme.of(context)
+                                        .colorScheme
+                                        .secondaryContainer,
+                                    icon: Icon(Icons.chevron_left),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Text(
+                                    "Path - ${routes.map((element) => element.category ?? '').join('/')}",
+                                    style: TextStyle(fontSize: 20),
+                                  ),
+                                ],
                               ),
-                            ),
-                            if (routes.isNotEmpty) ...[
-                              Container(
-                                color: Colors.grey,
-                                height: double.maxFinite,
-                                width: 4,
-                                margin: EdgeInsets.symmetric(horizontal: 24),
+                              Text(
+                                "${data.length} Total Catergories",
+                                style: TextStyle(fontSize: 20),
                               ),
+                              const SizedBox(height: 16),
                               Expanded(
-                                flex: 3,
-                                child: ContentView(content: routes.last),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      flex: 2,
+                                      child: DataView(
+                                        data: data,
+                                        onTap: (WikiContent value) {
+                                          setState(() {
+                                            if (routes.isNotEmpty &&
+                                                (routes.last.children?.isEmpty ??
+                                                    false)) {
+                                              routes.remove(routes.last);
+                                            }
+                                            routes.add(value);
+                                          });
+                                          print('len ${routes.length}');
+                                        },
+                                      ),
+                                    ),
+                                    if (routes.isNotEmpty) ...[
+                                      Container(
+                                        color: Colors.grey,
+                                        height: double.maxFinite,
+                                        width: 4,
+                                        margin:
+                                            EdgeInsets.symmetric(horizontal: 24),
+                                      ),
+                                      Expanded(
+                                        flex: 3,
+                                        child: ContentView(content: routes.last),
+                                      ),
+                                    ]
+                                  ],
+                                ),
                               ),
-                            ]
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : CircularProgressIndicator.adaptive();
-        },
+                            ],
+                          ),
+                        )
+                      : CircularProgressIndicator.adaptive();
+                },
+              ),
       ),
     );
   }
@@ -173,6 +194,51 @@ class ContentView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class SearchResultsCard extends StatelessWidget {
+  const SearchResultsCard({super.key, required this.results});
+
+  final List<DocumentModel> results;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      padding: EdgeInsets.all(16),
+      itemBuilder: (context, index) {
+        final model = results[index];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Document ID',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(model.docID),
+            SizedBox(height: 6),
+            Text('N-gram Match Ratio: ${model.ngram_match_ratio}'),
+            SizedBox(height: 6),
+            Text('Semantic Similarity: ${model.semantic_similarity}'),
+            SizedBox(height: 8),
+            Text(
+              'Text Snippet',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 4),
+            Text(model.text_snippet),
+          ],
+        );
+      },
+      separatorBuilder: (context, index) => Container(
+        color: Colors.grey,
+        height: 2,
+        width: double.maxFinite,
+        margin: EdgeInsets.symmetric(vertical: 24),
+      ),
+      itemCount: results.length,
     );
   }
 }
