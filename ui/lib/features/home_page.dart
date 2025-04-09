@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ui/models/wiki_content.dart';
+import 'package:ui/services/http_service.dart';
 import 'package:ui/services/json_parser.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -25,6 +26,9 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: EdgeInsets.only(bottom: 10),
             child: SearchBar(
               hintText: 'Search category or content',
+              onChanged: (value) {
+                HttpService().searchFiles(value);
+              },
             ),
           ),
         ),
@@ -77,8 +81,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 data: data,
                                 onTap: (WikiContent value) {
                                   setState(() {
-                                    if (routes.isNotEmpty && (routes.last.children?.isEmpty ??
-                                        false)) {
+                                    if (routes.isNotEmpty &&
+                                        (routes.last.children?.isEmpty ??
+                                            false)) {
                                       routes.remove(routes.last);
                                     }
                                     routes.add(value);
