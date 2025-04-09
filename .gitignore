@@ -44,5 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-.venv/
+/.venv/
 /embedding_search/embeddings.json
+/data/data.json
