@@ -46,3 +46,4 @@ app.*.map.json
 
 .venv/
 /embedding_search/embeddings.json
+/data_mining/data.json
