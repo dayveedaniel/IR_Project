@@ -46,7 +46,7 @@ def get_approximate_matches(query_ng: str, threshold: int = 80) -> List[str]:
     return [match[0] for match in matches]
 
 
-def search_documents(query: str, n: int = 3, top_n: int = 3, fuzzy_threshold: int = 80):
+def search_documents(query: str, n: int = 3, top_n: int = 3, fuzzy_threshold: int = 50):
     """
     Searches documents by combining approximate n-gram matching and semantic similarity.
 
@@ -89,7 +89,7 @@ def search_documents(query: str, n: int = 3, top_n: int = 3, fuzzy_threshold: in
             "doc_id": doc_id,
             "semantic_similarity": sem_sim,
             "ngram_match_ratio": ngram_match_ratio,
-            "text_snippet": doc["text"][:200]
+            "text_snippet": doc["text"]
         })
 
     # Sort primarily by semantic similarity.
