@@ -3,30 +3,30 @@ import os
 import numpy as np
 from fastapi import FastAPI, HTTPException
 from sentence_transformers import SentenceTransformer
+from rapidfuzz import process, fuzz  # Fast fuzzy matching library
+from typing import List
 
-# --- Configuration and Model Loading ---
-
-# Adjust this path if necessary.
+# --- Load Embeddings and n-gram Index ---
 EMBEDDINGS_FILE = "../embedding_search/embeddings.json"
-
 if not os.path.exists(EMBEDDINGS_FILE):
-    raise Exception("Embeddings file not found. Please run the update_embeddings script first.")
+    raise Exception("Embeddings file not found. Please run the embeddings script first.")
 
 with open(EMBEDDINGS_FILE, 'r', encoding='utf8') as f:
     data = json.load(f)
 
-# Load document embeddings and n-gram index (converted to sets for efficient look-ups)
 documents = data.get("documents", {})
-ngram_index = {ngram: set(doc_ids) for ngram, doc_ids in data.get("ngram_index", {}).items()}
+ngram_index_data = data.get("ngram_index", {})
+# Convert lists to sets for fast membership testing.
+ngram_index = {ng: set(doc_ids) for ng, doc_ids in ngram_index_data.items()}
+ngram_keys = list(ngram_index.keys())  # Precompute keys list for fuzzy matching
 
-# Load the SentenceTransformer model (this can take a bit of time)
+# --- Load the SentenceTransformer Model ---
 model = SentenceTransformer('all-MiniLM-L6-v2')
-approximate_threshold = 0.8  # threshold for approximate n-gram matching
 
 
 # --- Helper Functions ---
 
-def get_ngrams(text, n=3):
+def get_ngrams(text: str, n: int = 3) -> List[str]:
     tokens = text.lower().split()
     return [" ".join(tokens[i:i + n]) for i in range(len(tokens) - n + 1)]
 
@@ -35,84 +35,64 @@ def cosine_similarity(vec1, vec2):
     return np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
 
 
-def levenshtein_distance(s1, s2):
-    m, n = len(s1), len(s2)
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    for i in range(m + 1):
-        dp[i][0] = i
-    for j in range(n + 1):
-        dp[0][j] = j
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            cost = 0 if s1[i - 1] == s2[j - 1] else 1
-            dp[i][j] = min(
-                dp[i - 1][j] + 1,  # deletion
-                dp[i][j - 1] + 1,  # insertion
-                dp[i - 1][j - 1] + cost  # substitution
-            )
-    return dp[m][n]
-
-
-def normalized_similarity(s1, s2):
-    max_len = max(len(s1), len(s2))
-    if max_len == 0:
-        return 1.0
-    dist = levenshtein_distance(s1, s2)
-    return 1 - dist / max_len
-
-
-def search_documents(query: str, n: int = 3, top_n: int = 3):
+def get_approximate_matches(query_ng: str, threshold: int = 80) -> List[str]:
     """
-    Search the document database based on the query.
+    Use RapidFuzz to fetch approximate matches for a given n-gram.
+    Returns a list of candidate n-grams from the index that have a fuzzy score above the threshold.
+    The threshold is expressed as a percentage (0-100).
+    """
+    # process.extract returns tuples of (match, score, index)
+    matches = process.extract(query_ng, ngram_keys, scorer=fuzz.ratio, score_cutoff=threshold)
+    return [match[0] for match in matches]
+
+
+def search_documents(query: str, n: int = 3, top_n: int = 3, fuzzy_threshold: int = 80):
+    """
+    Searches documents by combining approximate n-gram matching and semantic similarity.
 
     Parameters:
-      query (str): The search string.
-      n (int): The n-gram size to use. (default 3)
-      top_n (int): The number of top results to return. (default 3)
+      - query: The query string.
+      - n: The n-gram size (default is 3).
+      - top_n: Number of top results to return.
+      - fuzzy_threshold: Minimum fuzzy matching score (0-100) required for an approximate match.
 
     Returns:
-      A list of dictionaries containing the doc_id, semantic similarity,
-      n-gram match ratio, and a text snippet.
+      A list of candidate documents with associated scores.
     """
     query_embedding = model.encode(query)
     query_ngrams = set(get_ngrams(query, n))
     candidate_scores = {}
 
-    # First, try exact n-gram matching.
-    for q_ngram in query_ngrams:
-        if q_ngram in ngram_index:
-            for doc_id in ngram_index[q_ngram]:
+    for q_ng in query_ngrams:
+        if q_ng in ngram_index:
+            # Found an exact match.
+            for doc_id in ngram_index[q_ng]:
                 candidate_scores[doc_id] = candidate_scores.get(doc_id, 0) + 1
         else:
-            # Use approximate matching if no exact match is found.
-            for candidate_ngram, doc_ids in ngram_index.items():
-                sim = normalized_similarity(q_ngram, candidate_ngram)
-                if sim >= approximate_threshold:
-                    for doc_id in doc_ids:
-                        candidate_scores[doc_id] = candidate_scores.get(doc_id, 0) + 1
+            # Use RapidFuzz for approximate matching on this n-gram.
+            approx_matches = get_approximate_matches(q_ng, threshold=fuzzy_threshold)
+            for approx_ng in approx_matches:
+                for doc_id in ngram_index.get(approx_ng, []):
+                    candidate_scores[doc_id] = candidate_scores.get(doc_id, 0) + 1
 
-    if candidate_scores:
-        # Sort candidate document IDs by the number of matching n-grams (descending)
-        candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
-        top_candidates = [doc_id for doc_id, count in candidates[:100]]
-    else:
-        # If no candidates were found via n-gram matching, consider all documents
-        top_candidates = list(documents.keys())
+    # If no candidates are found via n-grams, fall back to all documents.
+    candidate_ids = list(candidate_scores.keys()) if candidate_scores else list(documents.keys())
 
     results = []
-    for doc_id in top_candidates:
-        doc_data = documents[doc_id]
-        emb = np.array(doc_data["embedding"])
-        sim = cosine_similarity(query_embedding, emb)
+    for doc_id in candidate_ids:
+        doc = documents[doc_id]
+        emb = np.array(doc["embedding"])
+        sem_sim = cosine_similarity(query_embedding, emb)
+        # Ratio of matched n-grams acts as a local match indicator.
         ngram_match_ratio = candidate_scores.get(doc_id, 0) / len(query_ngrams) if query_ngrams else 0
         results.append({
             "doc_id": doc_id,
-            "semantic_similarity": sim,
+            "semantic_similarity": sem_sim,
             "ngram_match_ratio": ngram_match_ratio,
-            "text_snippet": doc_data["text"][:200]
+            "text_snippet": doc["text"][:200]
         })
 
-    # Sort the final results by semantic similarity in descending order.
+    # Sort primarily by semantic similarity.
     results = sorted(results, key=lambda x: x["semantic_similarity"], reverse=True)
     return results[:top_n]
 
@@ -124,24 +104,22 @@ app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to the Embedding Search API"}
+    return {"message": "Welcome to the RAG Semantic Search API"}
 
 
 @app.get("/search/")
-def searchDB(query: str, n_grams: int = 3, top_n: int = 3):
+def search_api(query: str, n: int = 3, top_n: int = 3, fuzzy_threshold: int = 80):
     """
-    API endpoint to search the document embeddings.
+    API endpoint to search documents.
 
     Query parameters:
-      - query (str): The search query.
-      - n_grams (int): The n-gram size for indexing (default is 3).
-      - top_n (int): Number of top results to return (default is 3).
-
-    Returns:
-      JSON response with a list of top search results.
+      - query: search text.
+      - n: n-gram size (default 3).
+      - top_n: number of results (default 3).
+      - fuzzy_threshold: minimum fuzzy score (0-100, default 80).
     """
     try:
-        results = search_documents(query, n_grams, top_n)
+        results = search_documents(query, n, top_n, fuzzy_threshold)
         return {"results": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
