@@ -13,7 +13,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   Set<WikiContent> routes = {};
-  List<DocumentModel> docs = [];
+  QueryResponse? queryResponse;
   final controller = TextEditingController();
 
   @override
@@ -35,7 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () {
                       setState(() {
                         controller.clear();
-                        docs.clear();
+                        queryResponse = null;
                       });
                     },
                     icon: Icon(Icons.cancel),
@@ -43,15 +43,16 @@ class _MyHomePageState extends State<MyHomePage> {
                 ],
                 hintText: 'Search category or content',
                 onChanged: (value) async {
-                  docs = await HttpService().searchFiles(value);
+                  final response = await HttpService().searchFiles(value);
+                  queryResponse = response;
                   setState(() {});
                 },
               ),
             ),
           ),
         ),
-        body: docs.isNotEmpty
-            ? SearchResultsCard(results: docs)
+        body: queryResponse != null
+            ? SearchResultsCard(results: queryResponse!.retrievedContext)
             : FutureBuilder<List<WikiContent>>(
                 future: JsonParserService().getContents(),
                 builder: (context, snapshot) {
@@ -91,6 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(fontSize: 20),
                               ),
                               const SizedBox(height: 16),
+                              Text(queryResponse != null ? queryResponse!.finalAnswer : ''),
                               Expanded(
                                 child: Row(
                                   children: [
@@ -201,7 +203,7 @@ class ContentView extends StatelessWidget {
 class SearchResultsCard extends StatelessWidget {
   const SearchResultsCard({super.key, required this.results});
 
-  final List<DocumentModel> results;
+  final List<RetrievedContext> results;
 
   @override
   Widget build(BuildContext context) {
@@ -217,18 +219,18 @@ class SearchResultsCard extends StatelessWidget {
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4),
-            Text(model.docID),
+            Text(model.docId),
             SizedBox(height: 6),
-            Text('N-gram Match Ratio: ${model.ngram_match_ratio}'),
+            Text('N-gram Match Ratio: ${model.ngramMatchRatio}'),
             SizedBox(height: 6),
-            Text('Semantic Similarity: ${model.semantic_similarity}'),
+            Text('Semantic Similarity: ${model.semanticSimilarity}'),
             SizedBox(height: 8),
             Text(
               'Text Snippet',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 4),
-            Text(model.text_snippet),
+            Text(model.textSnippet),
           ],
         );
       },

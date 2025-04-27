@@ -1,21 +1,41 @@
-class DocumentModel {
-  final String docID;
-  final double semantic_similarity;
-  final double ngram_match_ratio;
-  final String text_snippet;
+class QueryResponse {
+    final String userQuestion;
+    final String generatedSearchQuery;
+    final List<RetrievedContext> retrievedContext;
+    final String finalAnswer;
 
-  DocumentModel(
-      {required this.docID,
-      required this.semantic_similarity,
-      required this.ngram_match_ratio,
-      required this.text_snippet,});
+    QueryResponse({
+        required this.userQuestion,
+        required this.generatedSearchQuery,
+        required this.retrievedContext,
+        required this.finalAnswer,
+    });
 
-  factory DocumentModel.fromJson(Map<String, dynamic> json) {
-    return DocumentModel(
-      docID: json['doc_id'],
-      semantic_similarity: json['semantic_similarity'],
-      ngram_match_ratio: json['ngram_match_ratio'].toDouble(),
-      text_snippet: json['text_snippet'],
+    factory QueryResponse.fromJson(Map<String, dynamic> json) => QueryResponse(
+        userQuestion: json["user_question"],
+        generatedSearchQuery: json["generated_search_query"],
+        retrievedContext: List<RetrievedContext>.from(json["retrieved_context"].map((x) => RetrievedContext.fromJson(x))),
+        finalAnswer: json["final_answer"],
     );
-  }
+}
+
+class RetrievedContext {
+    final String docId;
+    final double semanticSimilarity;
+    final int ngramMatchRatio;
+    final String textSnippet;
+
+    RetrievedContext({
+        required this.docId,
+        required this.semanticSimilarity,
+        required this.ngramMatchRatio,
+        required this.textSnippet,
+    });
+
+    factory RetrievedContext.fromJson(Map<String, dynamic> json) => RetrievedContext(
+        docId: json["doc_id"],
+        semanticSimilarity: json["semantic_similarity"]?.toDouble(),
+        ngramMatchRatio: json["ngram_match_ratio"],
+        textSnippet: json["text_snippet"],
+    );
 }
