@@ -10,7 +10,7 @@ from openai import AsyncOpenAI
 
 LOCAL_LLM_ENDPOINT = "http://localhost:11434/v1"
 API_KEY = os.getenv("OPENAI_API_KEY", "dummy-key")
-LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:27b")
+LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:4b")
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -55,11 +55,11 @@ async def ask_llm(prompt: str, system_message: str = None, max_tokens: int = 200
 
 
 
-@app.get("/rag_query/")
+@app.get("/search/")
 async def rag_query_endpoint(
-        user_question: str,
+        query: str,
         search_top_n: int = 3,
-        search_fuzzy_threshold: int = 75  # Slightly lower threshold for query generation might be ok
+        search_fuzzy_threshold: int = 70
 ):
     """
     Performs RAG:
@@ -67,6 +67,7 @@ async def rag_query_endpoint(
     2. Performs semantic search using the generated query.
     3. Asks LLM to answer the user question based on search results.
     """
+    user_question = query
     logger.info(f"Received RAG request for question: '{user_question}'")
 
     # === Step 1: Generate Search Query ===
@@ -113,7 +114,7 @@ Search Query:"""
         raise HTTPException(status_code=500, detail=f"Error during semantic search: {e}")
 
     # === Step 3: Generate Final Answer based on Context ===
-    final_answer_prompt = f"""Please answer the following user question based *only* on the provided context documents. Be concise and directly answer the question. If the context does not contain the answer, state that you cannot answer based on the provided information. Do not make up information.
+    final_answer_prompt = f"""Please answer the following user question based *only* on the provided context documents. Answer the question directly. If the context does not contain the answer, state that you cannot answer based on the provided information. Do not make up information. 
 
 Context Documents:
 ---
