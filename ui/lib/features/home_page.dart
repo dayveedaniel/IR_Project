@@ -22,8 +22,8 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-          title:
-              Text('Information Retrival Category: Artificial Intelligence Wiki'),
+          title: Text(
+              'Information Retrival Category: Artificial Intelligence Wiki'),
           bottom: PreferredSize(
             preferredSize: Size.fromHeight(80),
             child: Padding(
@@ -42,11 +42,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
                 ],
                 hintText: 'Search category or content',
-                // onChanged: (value) async {
-                //   final response = await HttpService().searchFiles(value);
-                //   queryResponse = response;
-                //   setState(() {});
-                // },
                 onSubmitted: (value) async {
                   final response = await HttpService().searchFiles(value);
                   queryResponse = response;
@@ -107,7 +102,8 @@ class _MyHomePageState extends State<MyHomePage> {
                                         onTap: (WikiContent value) {
                                           setState(() {
                                             if (routes.isNotEmpty &&
-                                                (routes.last.children?.isEmpty ??
+                                                (routes.last.children
+                                                        ?.isEmpty ??
                                                     false)) {
                                               routes.remove(routes.last);
                                             }
@@ -121,12 +117,13 @@ class _MyHomePageState extends State<MyHomePage> {
                                         color: Colors.grey,
                                         height: double.maxFinite,
                                         width: 4,
-                                        margin:
-                                            EdgeInsets.symmetric(horizontal: 24),
+                                        margin: EdgeInsets.symmetric(
+                                            horizontal: 24),
                                       ),
                                       Expanded(
                                         flex: 3,
-                                        child: ContentView(content: routes.last),
+                                        child:
+                                            ContentView(content: routes.last),
                                       ),
                                     ]
                                   ],
@@ -212,12 +209,15 @@ class SearchResultsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(queryResponse.finalAnswer),
+        Text(
+          'Final Answer: ${queryResponse.finalAnswer}',
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+        ),
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.all(16),
             itemBuilder: (context, index) {
-              final model = queryResponse!.retrievedContext[index];
+              final model = queryResponse.retrievedContext[index];
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
