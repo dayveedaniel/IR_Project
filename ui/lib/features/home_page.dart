@@ -42,7 +42,12 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
                 ],
                 hintText: 'Search category or content',
-                onChanged: (value) async {
+                // onChanged: (value) async {
+                //   final response = await HttpService().searchFiles(value);
+                //   queryResponse = response;
+                //   setState(() {});
+                // },
+                onSubmitted: (value) async {
                   final response = await HttpService().searchFiles(value);
                   queryResponse = response;
                   setState(() {});
@@ -52,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
         body: queryResponse != null
-            ? SearchResultsCard(results: queryResponse!.retrievedContext)
+            ? SearchResultsCard(queryResponse: queryResponse!)
             : FutureBuilder<List<WikiContent>>(
                 future: JsonParserService().getContents(),
                 builder: (context, snapshot) {
@@ -92,7 +97,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                 style: TextStyle(fontSize: 20),
                               ),
                               const SizedBox(height: 16),
-                              Text(queryResponse != null ? queryResponse!.finalAnswer : ''),
                               Expanded(
                                 child: Row(
                                   children: [
@@ -109,7 +113,6 @@ class _MyHomePageState extends State<MyHomePage> {
                                             }
                                             routes.add(value);
                                           });
-                                          print('len ${routes.length}');
                                         },
                                       ),
                                     ),
@@ -201,46 +204,53 @@ class ContentView extends StatelessWidget {
 }
 
 class SearchResultsCard extends StatelessWidget {
-  const SearchResultsCard({super.key, required this.results});
+  const SearchResultsCard({super.key, required this.queryResponse});
 
-  final List<RetrievedContext> results;
+  final QueryResponse queryResponse;
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: EdgeInsets.all(16),
-      itemBuilder: (context, index) {
-        final model = results[index];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Document ID',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+    return Column(
+      children: [
+        Text(queryResponse.finalAnswer),
+        Expanded(
+          child: ListView.separated(
+            padding: EdgeInsets.all(16),
+            itemBuilder: (context, index) {
+              final model = queryResponse!.retrievedContext[index];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Document ID',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(model.docId),
+                  SizedBox(height: 6),
+                  Text('N-gram Match Ratio: ${model.ngramMatchRatio}'),
+                  SizedBox(height: 6),
+                  Text('Semantic Similarity: ${model.semanticSimilarity}'),
+                  SizedBox(height: 8),
+                  Text(
+                    'Text Snippet',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(model.textSnippet),
+                ],
+              );
+            },
+            separatorBuilder: (context, index) => Container(
+              color: Colors.grey,
+              height: 2,
+              width: double.maxFinite,
+              margin: EdgeInsets.symmetric(vertical: 24),
             ),
-            SizedBox(height: 4),
-            Text(model.docId),
-            SizedBox(height: 6),
-            Text('N-gram Match Ratio: ${model.ngramMatchRatio}'),
-            SizedBox(height: 6),
-            Text('Semantic Similarity: ${model.semanticSimilarity}'),
-            SizedBox(height: 8),
-            Text(
-              'Text Snippet',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 4),
-            Text(model.textSnippet),
-          ],
-        );
-      },
-      separatorBuilder: (context, index) => Container(
-        color: Colors.grey,
-        height: 2,
-        width: double.maxFinite,
-        margin: EdgeInsets.symmetric(vertical: 24),
-      ),
-      itemCount: results.length,
+            itemCount: queryResponse.retrievedContext.length,
+          ),
+        ),
+      ],
     );
   }
 }
