@@ -1,23 +1,3 @@
-class QueryResponse {
-    final String userQuestion;
-    final String generatedSearchQuery;
-    final List<RetrievedContext> retrievedContext;
-    final String finalAnswer;
-
-    QueryResponse({
-        required this.userQuestion,
-        required this.generatedSearchQuery,
-        required this.retrievedContext,
-        required this.finalAnswer,
-    });
-
-    factory QueryResponse.fromJson(Map<String, dynamic> json) => QueryResponse(
-        userQuestion: json["user_question"],
-        generatedSearchQuery: json["generated_search_query"],
-        retrievedContext: List<RetrievedContext>.from(json["retrieved_context"].map((x) => RetrievedContext.fromJson(x))),
-        finalAnswer: json["final_answer"],
-    );
-}
 
 class RetrievedContext {
     final String docId;
@@ -37,5 +17,27 @@ class RetrievedContext {
         semanticSimilarity: json["semantic_similarity"]?.toDouble(),
         ngramMatchRatio: json["ngram_match_ratio"],
         textSnippet: json["text_snippet"],
+    );
+}
+
+class QueryResponse {
+    final String generatedSearchQuery;
+    final String userQuestion;
+    final String finalAnswer;
+    final List<RetrievedContext> retrievedContext;
+    
+
+    QueryResponse({
+        required this.userQuestion,
+        required this.generatedSearchQuery,
+        required this.retrievedContext,
+        required this.finalAnswer,
+    });
+
+    factory QueryResponse.fromJson(Map<String, dynamic> json) => QueryResponse(
+        userQuestion: json["user_question"],
+        generatedSearchQuery: json["generated_search_query"],
+        retrievedContext: List<RetrievedContext>.from(json["retrieved_context"].map((x) => RetrievedContext.fromJson(x))),
+        finalAnswer: json["final_answer"],
     );
 }
