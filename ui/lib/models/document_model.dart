@@ -1,44 +1,3 @@
-/// Represents a snippet of context retrieved from a document in response to a query.
-///
-/// Contains metadata about the context's relevance and a short snippet of the document text.
-class RetrievedContext {
-  /// Unique identifier of the document where the context was found.
-  final String docId;
-
-  /// Semantic similarity score between the user query and this context (range 0.0 - 1.0).
-  final double semanticSimilarity;
-
-  /// Ratio of matching n-grams between the query and the context (as a percentage).
-  final int ngramMatchRatio;
-
-  /// A short snippet of text from the document that matches the query.
-  final String textSnippet;
-
-  /// Constructs a [RetrievedContext] with the given metadata and text snippet.
-  RetrievedContext({
-    required this.docId,
-    required this.semanticSimilarity,
-    required this.ngramMatchRatio,
-    required this.textSnippet,
-  });
-
-  /// Creates a [RetrievedContext] instance from a JSON map.
-  ///
-  /// Expects keys:
-  /// - "doc_id": String
-  /// - "semantic_similarity": num or String convertible to double
-  /// - "ngram_match_ratio": int
-  /// - "text_snippet": String
-  factory RetrievedContext.fromJson(Map<String, dynamic> json) {
-    return RetrievedContext(
-      docId: json['doc_id'] as String,
-      semanticSimilarity: (json['semantic_similarity'] as num).toDouble(),
-      ngramMatchRatio: json['ngram_match_ratio'] as int,
-      textSnippet: json['text_snippet'] as String,
-    );
-  }
-}
-
 /// Represents the response to a user query, including the generated search query,
 /// the original user question, the final answer, and all retrieved contexts.
 class QueryResponse {
@@ -77,6 +36,47 @@ class QueryResponse {
           .map((item) => RetrievedContext.fromJson(item as Map<String, dynamic>))
           .toList(),
       finalAnswer: json['final_answer'] as String,
+    );
+  }
+}
+
+/// Represents a snippet of context retrieved from a document in response to a query.
+///
+/// Contains metadata about the context's relevance and a short snippet of the document text.
+class RetrievedContext {
+  /// Unique identifier of the document where the context was found.
+  final String docId;
+
+  /// Semantic similarity score between the user query and this context (range 0.0 - 1.0).
+  final double semanticSimilarity;
+
+  /// Ratio of matching n-grams between the query and the context (as a percentage).
+  final int ngramMatchRatio;
+
+  /// A short snippet of text from the document that matches the query.
+  final String textSnippet;
+
+  /// Constructs a [RetrievedContext] with the given metadata and text snippet.
+  RetrievedContext({
+    required this.docId,
+    required this.semanticSimilarity,
+    required this.ngramMatchRatio,
+    required this.textSnippet,
+  });
+
+  /// Creates a [RetrievedContext] instance from a JSON map.
+  ///
+  /// Expects keys:
+  /// - "doc_id": String
+  /// - "semantic_similarity": num or String convertible to double
+  /// - "ngram_match_ratio": int
+  /// - "text_snippet": String
+  factory RetrievedContext.fromJson(Map<String, dynamic> json) {
+    return RetrievedContext(
+      docId: json['doc_id'] as String,
+      semanticSimilarity: (json['semantic_similarity'] as num).toDouble(),
+      ngramMatchRatio: json['ngram_match_ratio'] as int,
+      textSnippet: json['text_snippet'] as String,
     );
   }
 }
