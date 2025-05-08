@@ -12,7 +12,7 @@ class JsonParserService {
   Future<Map<String, dynamic>> readJsonFile() async {
     // Read the file contents as a string
     final input = await File(
-      '/Users/dayveed/VscodeProjects/IR_Project/data_mining/data.json',
+      'data_mining/data.json',
     ).readAsString();
 
     // Decode the JSON string into a List
