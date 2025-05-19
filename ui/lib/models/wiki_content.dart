@@ -22,13 +22,13 @@ class WikiContent {
     this.children,
   });
 
-    @override
+  @override
   bool operator ==(Object other) =>
       other is WikiContent &&
       other.runtimeType == runtimeType &&
-      other.mainContent == mainContent && other.category ==other.category;
+      other.mainContent == mainContent &&
+      other.category == other.category;
 
   @override
   int get hashCode => Object.hash(mainContent, category);
-  
 }

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:ui/models/document_model.dart';
-import 'package:ui/models/wiki_content.dart';
-import 'package:ui/services/http_service.dart';
-import 'package:ui/services/json_parser.dart';
+import 'package:ui/state_noitifiers/list_tile_notifier.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
@@ -12,9 +11,9 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Set<WikiContent> routes = {};
   QueryResponse? queryResponse;
   final controller = TextEditingController();
+  final notifier = ListTileNotifier()..getWikiContents(null);
 
   @override
   Widget build(BuildContext context) {
@@ -33,108 +32,130 @@ class _MyHomePageState extends State<MyHomePage> {
                 trailing: [
                   IconButton(
                     onPressed: () {
-                      setState(() {
-                        controller.clear();
-                        queryResponse = null;
-                      });
+                      controller.clear();
+                      notifier.getWikiContents(null);
                     },
                     icon: Icon(Icons.cancel),
                   )
                 ],
                 hintText: 'Search category or content',
                 onSubmitted: (value) async {
-                  final response = await HttpService().searchFiles(value);
-                  queryResponse = response;
-                  setState(() {});
+                  notifier.pageContentFromApi(value);
                 },
               ),
             ),
           ),
         ),
-        body: queryResponse != null
-            ? SearchResultsCard(queryResponse: queryResponse!)
-            : FutureBuilder<List<WikiContent>>(
-                future: JsonParserService().getContents(),
-                builder: (context, snapshot) {
-                  final data = routes.isNotEmpty &&
-                          routes.last.children != null &&
-                          routes.last.children!.isNotEmpty
-                      ? routes.last.children!
-                      : snapshot.data ?? [];
-                  return snapshot.hasData
-                      ? Padding(
-                          padding: const EdgeInsets.all(24.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+        body: ListenableBuilder(
+          listenable: notifier,
+          builder: (context, child) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: notifier.isLoading
+                  ? Column(
+                      children: [
+                        Shimmer.fromColors(
+                            baseColor: Colors.grey.shade300,
+                            highlightColor: Colors.grey.shade100,
+                            enabled: true,
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  height: 16,
+                                )
+                              ],
+                            ))
+                      ],
+                    )
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (notifier.isSearchPage) ...[
+                            Text(
+                              'Generated search query',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                            SizedBox(height: 8),
+                            Text(notifier.pageTitle ?? ''),
+                            SizedBox(height: 12),
+                            Text(
+                              'Final answer',
+                              style: TextStyle(fontSize: 20),
+                            ),
+                            SizedBox(height: 8),
+                            Text(notifier.pageSubtitle ?? ''),
+                          ] else
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: notifier.onBackTap,
+                                  highlightColor: Theme.of(context)
+                                      .colorScheme
+                                      .secondaryContainer,
+                                  icon: Icon(Icons.chevron_left),
+                                ),
+                                SizedBox(width: 16),
+                                Text(
+                                  "Path - ${notifier.routes.map((element) => element.title).join('/')}",
+                                  style: TextStyle(fontSize: 20),
+                                ),
+                              ],
+                            ),
+                          SizedBox(height: 16),
+                          Text(
+                            "${notifier.pageContent?.length} Total Catergories",
+                            style: TextStyle(fontSize: 20),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Row(
-                                children: [
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        routes.remove(routes.last);
-                                      });
-                                    },
-                                    highlightColor: Theme.of(context)
-                                        .colorScheme
-                                        .secondaryContainer,
-                                    icon: Icon(Icons.chevron_left),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Text(
-                                    "Path - ${routes.map((element) => element.category ?? '').join('/')}",
-                                    style: TextStyle(fontSize: 20),
-                                  ),
-                                ],
-                              ),
-                              Text(
-                                "${data.length} Total Catergories",
-                                style: TextStyle(fontSize: 20),
-                              ),
-                              const SizedBox(height: 16),
                               Expanded(
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 2,
-                                      child: DataView(
-                                        data: data,
-                                        onTap: (WikiContent value) {
-                                          setState(() {
-                                            if (routes.isNotEmpty &&
-                                                (routes.last.children
-                                                        ?.isEmpty ??
-                                                    false)) {
-                                              routes.remove(routes.last);
-                                            }
-                                            routes.add(value);
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    if (routes.isNotEmpty) ...[
-                                      Container(
-                                        color: Colors.grey,
-                                        height: double.maxFinite,
-                                        width: 4,
-                                        margin: EdgeInsets.symmetric(
-                                            horizontal: 24),
-                                      ),
-                                      Expanded(
-                                        flex: 3,
-                                        child:
-                                            ContentView(content: routes.last),
-                                      ),
-                                    ]
-                                  ],
+                                flex: 2,
+                                child: DataView(
+                                  data: notifier.pageContent ?? [],
+                                  onTap: (ListTileContent value) {
+                                    notifier.onTileTap(value);
+                                  },
                                 ),
                               ),
+                              if (notifier.routes.isNotEmpty) ...[
+                                Container(
+                                  color: Colors.grey,
+                                  height: double.maxFinite,
+                                  width: 4,
+                                  margin: EdgeInsets.symmetric(horizontal: 24),
+                                ),
+                                SizedBox(
+                                    height: 250,
+                                    width: 200,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          notifier.routes.last.contentTitle,
+                                          style: TextStyle(fontSize: 24),
+                                        ),
+                                        SizedBox(height: 16),
+                                        Text(notifier.routes.last.contentBody),
+                                      ],
+                                    ),
+                                  ),
+                                // Expanded(
+                                //   flex: 3,
+                                //   child: 
+                                // ),
+                              ]
                             ],
                           ),
-                        )
-                      : CircularProgressIndicator.adaptive();
-                },
-              ),
+                        ],
+                      ),
+                    ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -147,109 +168,29 @@ class DataView extends StatelessWidget {
     required this.onTap,
   });
 
-  final List<WikiContent> data;
-  final ValueSetter<WikiContent> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      separatorBuilder: (context, index) => SizedBox(height: 16),
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        final wikiContent = data[index];
-        return ListTile(
-          trailing: Icon(Icons.chevron_right),
-          subtitle: Text('Total subsections: ${wikiContent.children?.length}'),
-          hoverColor:
-              Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.2),
-          tileColor: Theme.of(context).colorScheme.secondaryContainer,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16)),
-          ),
-          onTap: () => onTap(wikiContent),
-          title: Text(wikiContent.category ?? ''),
-        );
-      },
-    );
-  }
-}
-
-class ContentView extends StatelessWidget {
-  const ContentView({
-    super.key,
-    required this.content,
-  });
-
-  final WikiContent content;
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          content.category ?? '',
-          style: TextStyle(fontSize: 24),
-        ),
-        SizedBox(height: 16),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Text(content.mainContent ?? 'No Content available'),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class SearchResultsCard extends StatelessWidget {
-  const SearchResultsCard({super.key, required this.queryResponse});
-
-  final QueryResponse queryResponse;
+  final List<ListTileContent> data;
+  final ValueSetter<ListTileContent> onTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
+      spacing: 16,
       children: [
-        Text(
-          'Final Answer: ${queryResponse.finalAnswer}',
-          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-        ),
-        Expanded(
-          child: ListView.separated(
-            padding: EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final model = queryResponse.retrievedContext[index];
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Document ID',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 4),
-                  Text(model.docId),
-                  SizedBox(height: 6),
-                  Text('N-gram Match Ratio: ${model.ngramMatchRatio}'),
-                  SizedBox(height: 6),
-                  Text('Semantic Similarity: ${model.semanticSimilarity}'),
-                  SizedBox(height: 8),
-                  Text(
-                    'Text Snippet',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 4),
-                  Text(model.textSnippet),
-                ],
-              );
-            },
-            separatorBuilder: (context, index) => Container(
-              color: Colors.grey,
-              height: 2,
-              width: double.maxFinite,
-              margin: EdgeInsets.symmetric(vertical: 24),
+        for (final content in data)
+          ListTile(
+            trailing: Icon(Icons.chevron_right),
+            subtitle: Text('Total subsections: ${content.subtitle}'),
+            hoverColor: Theme.of(context)
+                .colorScheme
+                .secondaryContainer
+                .withOpacity(0.2),
+            tileColor: Theme.of(context).colorScheme.secondaryContainer,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(16)),
             ),
-            itemCount: queryResponse.retrievedContext.length,
-          ),
-        ),
+            onTap: () => onTap(content),
+            title: Text(content.title),
+          )
       ],
     );
   }

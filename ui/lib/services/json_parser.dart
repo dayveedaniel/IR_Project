@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:ui/models/wiki_content.dart';
 
 /// Service for parsing JSON files and converting data into [WikiContent] objects.
@@ -12,11 +13,11 @@ class JsonParserService {
   Future<Map<String, dynamic>> readJsonFile() async {
     // Read the file contents as a string
     final input = await File(
-      'data_mining/data.json',
+      '../data_mining/data.json',
     ).readAsString();
 
     // Decode the JSON string into a List
-    final map = jsonDecode(input) as List;
+    final map = await compute(jsonDecode, input);
 
     // Return the first JSON object in the list
     return map.first as Map<String, dynamic>;
