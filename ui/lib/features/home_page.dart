@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:ui/models/document_model.dart';
 import 'package:ui/state_noitifiers/list_tile_notifier.dart';
 
@@ -52,7 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
             return Padding(
               padding: const EdgeInsets.all(24.0),
               child: notifier.isLoading
-                  ? CircularProgressIndicator.adaptive()
+                  ? Center(child: CircularProgressIndicator.adaptive())
                   : SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -96,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 16),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Expanded(
@@ -108,16 +108,15 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                               ),
                               if (notifier.routes.isNotEmpty) ...[
-                                Flexible(
-                                  child: Container(
-                                    color: Colors.grey,
-                                    height: double.maxFinite,
-                                    width: 4,
-                                    margin: EdgeInsets.symmetric(horizontal: 24),
-                                  ),
+                                Container(
+                                  color: Colors.grey,
+                                  height:
+                                      MediaQuery.sizeOf(context).height * 0.8,
+                                  width: 4,
+                                  margin: EdgeInsets.symmetric(horizontal: 24),
                                 ),
                                 Expanded(
-                                  flex: 2,
+                                  flex: 3,
                                   child: Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [

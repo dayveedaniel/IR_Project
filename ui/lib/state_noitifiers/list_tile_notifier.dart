@@ -68,9 +68,9 @@ class ListTileNotifier extends ChangeNotifier {
     if (_isSearchPage) {
       return;
     }
-    // if (routes.isNotEmpty && (routes.last.children?.isEmpty ?? false)) {
-    //   routes.remove(routes.last);
-    // }
+    if (routes.isNotEmpty && (routes.last.children?.isEmpty ?? false)) {
+      routes.remove(routes.last);
+    }
     routes.add(content);
     if (content.children != null) getWikiContents(content.children);
     notifyListeners();
