@@ -24,7 +24,10 @@ class ListTileNotifier extends ChangeNotifier {
 
   void getWikiContents(List<WikiContent>? contentChildren) async {
     _isSearchPage = false;
+    _isLoading = true;
     final contents = contentChildren ?? await JsonParserService().getContents();
+    _isLoading = false;
+
     _pageContent = contents
         .map((e) => ListTileContent(
               title: e.category ?? '',
@@ -39,7 +42,10 @@ class ListTileNotifier extends ChangeNotifier {
   }
 
   void pageContentFromApi(String text) async {
+    _isLoading = true;
     final response = await HttpService().searchFiles(text);
+    _isLoading = false;
+
     _isSearchPage = true;
     _pageTitle = response.generatedSearchQuery;
     _pageSubtitle = response.finalAnswer;

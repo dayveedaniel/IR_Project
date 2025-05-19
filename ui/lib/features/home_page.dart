@@ -52,21 +52,7 @@ class _MyHomePageState extends State<MyHomePage> {
             return Padding(
               padding: const EdgeInsets.all(24.0),
               child: notifier.isLoading
-                  ? Column(
-                      children: [
-                        Shimmer.fromColors(
-                            baseColor: Colors.grey.shade300,
-                            highlightColor: Colors.grey.shade100,
-                            enabled: true,
-                            child: Column(
-                              children: [
-                                SizedBox(
-                                  height: 16,
-                                )
-                              ],
-                            ))
-                      ],
-                    )
+                  ? CircularProgressIndicator.adaptive()
                   : SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -113,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Expanded(
-                                flex: 2,
+                                flex: 3,
                                 child: DataView(
                                   data: notifier.pageContent ?? [],
                                   onTap: (ListTileContent value) {
@@ -122,31 +108,28 @@ class _MyHomePageState extends State<MyHomePage> {
                                 ),
                               ),
                               if (notifier.routes.isNotEmpty) ...[
-                                Container(
-                                  color: Colors.grey,
-                                  height: double.maxFinite,
-                                  width: 4,
-                                  margin: EdgeInsets.symmetric(horizontal: 24),
-                                ),
-                                SizedBox(
-                                    height: 250,
-                                    width: 200,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          notifier.routes.last.contentTitle,
-                                          style: TextStyle(fontSize: 24),
-                                        ),
-                                        SizedBox(height: 16),
-                                        Text(notifier.routes.last.contentBody),
-                                      ],
-                                    ),
+                                Flexible(
+                                  child: Container(
+                                    color: Colors.grey,
+                                    height: double.maxFinite,
+                                    width: 4,
+                                    margin: EdgeInsets.symmetric(horizontal: 24),
                                   ),
-                                // Expanded(
-                                //   flex: 3,
-                                //   child: 
-                                // ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        notifier.routes.last.contentTitle,
+                                        style: TextStyle(fontSize: 24),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(notifier.routes.last.contentBody),
+                                    ],
+                                  ),
+                                ),
                               ]
                             ],
                           ),
